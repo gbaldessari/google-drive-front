@@ -5,6 +5,8 @@ import LoadingScreen from "./commons/LoadingScreen";
 import { validateRefreshToken, validateToken } from "./services/auth/auth.service";
 import ResetPasswordWindow from "./pages/reset/ResetPasswordWindow";
 import RecoverPasswordWindow from "./pages/recover/RecoverPasswordWindow";
+import HomeWindow from "./pages/home/HomeWindow";
+import HomeWelcomeWindow from "./pages/home/views/homeWelcome/HomeWelcomeWindow";
 
 /**
  * Componente funcional que representa la aplicación principal.
@@ -109,10 +111,9 @@ function App() {
       <Routes>
         <Route path="/" element={<LoginWindow />} />
         <Route path="/login" element={<LoginWindow />} />
-        {/* <Route path="/home/*" element={<HomeWindow />}>
+        <Route path="/home/*" element={<HomeWindow />}>
           <Route path="" element={<HomeWelcomeWindow />} />
-          <Route path="profile" element={<AdminWindow />} />
-        </Route> */}
+        </Route>
         <Route path="/recover-password" element={<RecoverPasswordWindow />} />
         <Route path="/reset-password" element={<ResetPasswordWindow />} />
       </Routes>

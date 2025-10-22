@@ -1,0 +1,184 @@
+/**
+ * Hoja de estilos para la ventana home-window (home-windowWindow).
+ *
+ */
+
+.home-window {
+  min-height: 100vh;
+  width: 100vw;
+  display: flex;
+  flex-direction: row;
+}
+
+.home-window-sidebar {
+  width: 235px;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: #003e71aa;
+  padding: 0.5rem;
+  box-shadow: 10px 0 10px rgba(54, 54, 54, 0.08);
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 1000;
+  transition: width 220ms ease, padding 220ms ease;
+  will-change: width, padding;
+}
+
+.home-window-content {
+  flex: 1;
+  margin-left: 250px;
+  min-height: 100vh;
+  transition: margin-left 220ms ease;
+  will-change: margin-left;
+}
+
+.home-window-logo-button {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.home-window-logo-collapsed {
+  height: 60px;
+  width: auto;
+  filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.5));
+  animation: home-windowLogoAnimation 4s infinite;
+  transition: height 220ms ease, filter 220ms ease;
+}
+.home-window-logo {
+  height: 80px;
+  width: auto;
+  filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.5));
+  animation: home-windowLogoAnimation 4s infinite;
+  transition: height 220ms ease, filter 220ms ease;
+}
+
+@keyframes home-windowLogoAnimation {
+  0% {
+    filter: drop-shadow(0 0 0 rgba(255, 255, 255, 0.5));
+  }
+
+  50% {
+    filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.5));
+  }
+
+  100% {
+    filter: drop-shadow(0 0 0 rgba(255, 255, 255, 0.5));
+  }
+}
+
+.home-window-sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  flex: 1;
+}
+
+.home-window-logout-button {
+  background: #cc4b13;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+  padding: 1rem;
+  width: 80%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: auto;
+  margin-bottom: 2rem;
+}
+
+.home-window-logout-button:hover {
+  background: #f76f35;
+}
+
+.home-window-nav-button {
+  background: transparent;
+  color: #ffffff;
+  border: none;
+  padding: 0.75rem 1rem;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  font-size: 1rem;
+  text-align: left;
+  margin-bottom: 0.5rem;
+}
+
+.home-window-nav-button:hover {
+  background: rgba(255, 255, 255, 0.1);
+  transform: translateX(4px);
+}
+
+.home-window-nav-button span {
+  font-weight: 500;
+  display: inline-block;
+  white-space: nowrap;
+  transition: opacity 160ms ease, width 160ms ease, margin 160ms ease;
+}
+
+/* Botón para contraer/expandir la barra lateral */
+.home-window-collapse-button {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  border: none;
+  border-radius: 20px;
+  width: 40px;
+  height: 40px;
+  cursor: pointer;
+  transition: background 0.2s;
+  margin-bottom: 1rem;
+  padding: 0.6rem;
+}
+
+.home-window-collapse-button:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Estado colapsado */
+.home-window.collapsed .home-window-sidebar {
+  width: 80px;
+  padding: 1rem 0.5rem;
+}
+
+.home-window.collapsed .home-window-content {
+  margin-left: 95px;
+}
+
+.home-window.collapsed .home-window-logo {
+  height: 35px;
+}
+
+.home-window.collapsed .home-window-nav-button {
+  justify-content: center;
+  padding: 0.75rem 0;
+  gap: 0;                  /* evita hueco cuando se oculta el texto */
+  justify-content: center; /* centra los iconos */
+}
+
+/* Reemplaza la regla anterior que usaba display: none */
+.home-window.collapsed .home-window-nav-button span {
+  display: inline-block;   /* evita “saltos” para poder animar */
+  width: 0;
+  opacity: 0;
+  margin: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.home-window.collapsed .home-window-collapse-button {
+  align-self: center;
+}

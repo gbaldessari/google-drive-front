@@ -1,5 +1,3 @@
-import type { Apps } from "./GetUsers.type";
-
 /**
  * Define el tipo de datos para la carga útil de inicio de sesión.
  * Este tipo se utiliza para enviar la información necesaria al servidor al iniciar sesión.
@@ -28,6 +26,4 @@ export type LoginResponse = {
   refreshToken: string;
   firstName: string;
   lastName: string;
-  isAdmin: boolean;
-  appAccess: Apps;
 };

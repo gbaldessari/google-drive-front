@@ -75,7 +75,6 @@ function LoginWindow() {
         localStorage.setItem("firstName", response.data?.firstName || "");
         localStorage.setItem("lastName", response.data?.lastName || "");
         localStorage.setItem("email", email);
-        localStorage.setItem("isAdmin", response.data?.isAdmin ? "true" : "false");
         navigate("/home");
         setLoading(false);
       }, 2000);
