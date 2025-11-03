@@ -7,6 +7,7 @@ import ResetPasswordWindow from "./pages/reset/ResetPasswordWindow";
 import RecoverPasswordWindow from "./pages/recover/RecoverPasswordWindow";
 import HomeWindow from "./pages/home/HomeWindow";
 import HomeWelcomeWindow from "./pages/home/views/homeWelcome/HomeWelcomeWindow";
+import MyDriveWindow from "./pages/home/views/myDrive/MyDriveWindow";
 
 /**
  * Componente funcional que representa la aplicación principal.
@@ -113,6 +114,7 @@ function App() {
         <Route path="/login" element={<LoginWindow />} />
         <Route path="/home/*" element={<HomeWindow />}>
           <Route path="" element={<HomeWelcomeWindow />} />
+          <Route path="my-drive" element={<MyDriveWindow />} />
         </Route>
         <Route path="/recover-password" element={<RecoverPasswordWindow />} />
         <Route path="/reset-password" element={<ResetPasswordWindow />} />
