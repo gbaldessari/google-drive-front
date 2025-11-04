@@ -1,8 +1,5 @@
 import { logout } from "../services/auth/auth.service";
 
-/**
- * Maneja el cierre de sesión del usuario.
- */
 export const handleLogout = async () => {
   const token = localStorage.getItem("accessToken") || "";
   const response = await logout(token);

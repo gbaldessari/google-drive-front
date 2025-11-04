@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import "./myDriveWindow.css";
 import { getMyFiles, getFileDataById, getTextContentById } from "../../../../services/files/files.service";
 import {
@@ -11,9 +11,13 @@ import {
   MdArchive,
   MdCode,
   MdPushPin,
-  MdErrorOutline,
+  MdSort,
+  MdArrowUpward,
+  MdArrowDownward,
 } from "react-icons/md";
+import FileViewer from "../../../../commons/FileViewer";
 import type { UploadedFile, FileData } from "../../../../services/files/types/GetFiles.type";
+import { Alert } from "../../../../commons/Alert";
 
 function getIconByExtension(ext: string) {
   const e = ext.toLowerCase();
@@ -39,6 +43,47 @@ function MyDriveWindow() {
   const [fileData, setFileData] = useState<FileData | null>(null);
   const [textContent, setTextContent] = useState<string | null>(null);
   const [loadingPreview, setLoadingPreview] = useState(false);
+  const [downloading, setDownloading] = useState(false);
+  const [alert, setAlert] = useState({ type: "error" as const, message: "", show: false });
+
+  // Nuevo: estado de ordenación
+  const [sortBy, setSortBy] = useState<"recent" | "name" | "type" | "uploaded">("recent");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+  const [pinFirst, setPinFirst] = useState(true);
+
+  // Nuevo: lista ordenada sin mutar 'files'
+  const sortedFiles = useMemo(() => {
+    const arr = [...files];
+    const dir = sortDir === "asc" ? 1 : -1;
+
+    const cmp = (a: UploadedFile, b: UploadedFile) => {
+      // Anclados primero (si aplica)
+      if (pinFirst && a.isPinned !== b.isPinned) return a.isPinned ? -1 : 1;
+
+      let vA = 0;
+      let vB = 0;
+      if (sortBy === "recent") {
+        vA = new Date(a.lastSeen).getTime();
+        vB = new Date(b.lastSeen).getTime();
+      } else if (sortBy === "uploaded") {
+        vA = new Date(a.uploadedAt).getTime();
+        vB = new Date(b.uploadedAt).getTime();
+      } else if (sortBy === "name") {
+        const res = a.name.localeCompare(b.name, "es", { sensitivity: "base" });
+        if (res !== 0) return res * dir;
+      } else if (sortBy === "type") {
+        const res = a.extension.localeCompare(b.extension, "es", { sensitivity: "base" });
+        if (res !== 0) return res * dir;
+      }
+      // Para comparaciones numéricas (fechas)
+      if (vA !== vB) return (vA < vB ? -1 : 1) * dir;
+
+      // Desempate por nombre
+      return a.name.localeCompare(b.name, "es", { sensitivity: "base" });
+    };
+
+    return arr.sort(cmp);
+  }, [files, sortBy, sortDir, pinFirst]);
 
   useEffect(() => {
     let mounted = true;
@@ -85,6 +130,52 @@ function MyDriveWindow() {
     setTextContent(null);
   };
 
+  const handleDownload = async (e?: React.MouseEvent) => {
+    e?.preventDefault();
+    if (!selected) return;
+    const filename = `${selected.name}.${selected.extension}`;
+    try {
+      setDownloading(true);
+      if (fileData?.url) {
+        const resp = await fetch(fileData.url, { mode: "cors", referrerPolicy: "no-referrer" });
+        if (!resp.ok) throw new Error("Respuesta no OK");
+        const blob = await resp.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 0);
+        return;
+      }
+      if (typeof textContent === "string") {
+        const blob = new Blob([textContent], { type: fileData?.mimeType || "text/plain;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 0);
+        return;
+      }
+      throw new Error("No hay fuente descargable");
+    } catch (err) {
+      console.error("Fallo al descargar:", err);
+      setAlert({
+        type: "error",
+        message: "No se pudo descargar este archivo (posible restricción CORS).",
+        show: true,
+      });
+      setTimeout(() => setAlert((a) => ({ ...a, show: false })), 3500);
+    } finally {
+      setDownloading(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="my-drive-window">
@@ -102,23 +193,57 @@ function MyDriveWindow() {
         <div className="my-drive-header">
           <h2>Mi Unidad</h2>
         </div>
-        <div className="my-drive-error">
-          <MdErrorOutline size={22} />
-          <span>{error}</span>
-        </div>
+        <Alert type="error" message={error} show={true} />
       </div>
     );
   }
 
   return (
     <div className="my-drive-window">
+      <Alert type={alert.type} message={alert.message} show={alert.show} />
       <div className="my-drive-header">
         <h2>Mi Unidad</h2>
-        <span className="my-drive-counter">{files.length} archivos</span>
+        <div className="my-drive-actions">
+          <span className="my-drive-counter">{files.length} archivos</span>
+          <div className="my-drive-toolbar">
+            <label className="sort-label">
+              <MdSort size={18} />
+              <span>Ordenar por</span>
+              <select
+                className="sort-select"
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+              >
+                <option value="recent">Recientes</option>
+                <option value="uploaded">Fecha de subida</option>
+                <option value="name">Nombre</option>
+                <option value="type">Tipo</option>
+              </select>
+            </label>
+
+            <button
+              className="sort-dir-btn"
+              onClick={() => setSortDir((d) => (d === "asc" ? "desc" : "asc"))}
+              title={sortDir === "asc" ? "Ascendente" : "Descendente"}
+              aria-pressed={sortDir === "desc"}
+            >
+              {sortDir === "asc" ? <MdArrowUpward size={18} /> : <MdArrowDownward size={18} />}
+            </button>
+
+            <label className="pinfirst">
+              <input
+                type="checkbox"
+                checked={pinFirst}
+                onChange={(e) => setPinFirst(e.target.checked)}
+              />
+              <span>Anclados primero</span>
+            </label>
+          </div>
+        </div>
       </div>
 
       <div className="my-drive-grid">
-        {files.map((f) => (
+        {sortedFiles.map((f) => (
           <div
             key={f._id}
             className="file-card"
@@ -136,102 +261,23 @@ function MyDriveWindow() {
               <div className="file-sub">
                 <span className="file-ext">{f.extension}</span>
                 <span className="file-dot">•</span>
-                <span className="file-date">
-                  Visto {new Date(f.lastSeen).toLocaleDateString()}
-                </span>
+                <span className="file-date">Visto {new Date(f.lastSeen).toLocaleDateString()}</span>
               </div>
             </div>
           </div>
         ))}
       </div>
 
-      {/* Visor modal */}
-      {viewerOpen && (
-        <div className="viewer-overlay" onClick={closeViewer}>
-          <div className="viewer-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="viewer-header">
-              <div className="viewer-title">
-                {selected?.name}.{selected?.extension}
-              </div>
-              <button className="viewer-close" onClick={closeViewer} aria-label="Cerrar">×</button>
-            </div>
-
-            <div className="viewer-content">
-              {loadingPreview && <div className="viewer-loading">Cargando previsualización...</div>}
-
-              {!loadingPreview && fileData && (() => {
-                const mime = fileData.mimeType || "";
-                const ext = (selected?.extension || "").toLowerCase();
-
-                // Word / Excel / PowerPoint con Office Web Viewer
-                const isOfficeExt = ["doc", "docx", "xls", "xlsx", "ppt", "pptx"].includes(ext);
-                const isOfficeMime =
-                  mime.includes("officedocument") ||
-                  mime.includes("msword") ||
-                  mime.includes("vnd.ms-powerpoint") ||
-                  mime.includes("vnd.ms-excel");
-                if ((isOfficeExt || isOfficeMime) && fileData.url) {
-                  const officeUrl =
-                    `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(fileData.url)}&ui=en-US&wdOrigin=BROWSELINK`;
-                  return (
-                    <iframe
-                      className="viewer-frame"
-                      src={officeUrl}
-                      title={`${selected?.name}.${ext}`}
-                      loading="lazy"
-                    />
-                  );
-                }
-
-                if (mime.startsWith("image/")) {
-                  return <img className="viewer-media" src={fileData.url} alt={selected?.name} />;
-                }
-                if (mime.startsWith("audio/")) {
-                  return <audio className="viewer-media" src={fileData.url} controls />;
-                }
-                if (mime.startsWith("video/")) {
-                  return <video className="viewer-media" src={fileData.url} controls />;
-                }
-                if (mime === "application/pdf") {
-                  return (
-                    <iframe
-                      className="viewer-frame"
-                      src={fileData.url}
-                      title={`${selected?.name}.pdf`}
-                      loading="lazy"
-                    />
-                  );
-                }
-                if (
-                  mime.startsWith("text/") ||
-                  ["js", "ts", "tsx", "jsx", "html", "css", "json", "md"].includes(ext)
-                ) {
-                  return (
-                    <pre className="viewer-code">
-                      <code>{textContent ?? "Contenido no disponible."}</code>
-                    </pre>
-                  );
-                }
-                return (
-                  <div className="viewer-fallback">
-                    <p>Vista previa no disponible para este tipo de archivo.</p>
-                    {fileData.url ? (
-                      <a className="viewer-download" href={fileData.url} target="_blank" rel="noreferrer">
-                        Descargar archivo
-                      </a>
-                    ) : null}
-                    <div className="viewer-meta">
-                      <span>MIME: {fileData.mimeType}</span>
-                      <span>•</span>
-                      <span>Tamaño: ~{Math.round(fileData.size / 1024)} KB</span>
-                    </div>
-                  </div>
-                );
-              })()}
-            </div>
-          </div>
-        </div>
-      )}
+      <FileViewer
+        open={viewerOpen}
+        selected={selected}
+        fileData={fileData}
+        textContent={textContent}
+        loadingPreview={loadingPreview}
+        downloading={downloading}
+        onClose={closeViewer}
+        onDownload={handleDownload}
+      />
     </div>
   );
 }
