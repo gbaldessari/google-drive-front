@@ -105,6 +105,16 @@ const mockFiles: UploadedFile[] = [
     uploadedAt: new Date("2025-10-17T17:00:00Z"),
     observations: [],
   },
+  {
+    _id: "f11",
+    fileDataId: "d11",
+    name: "Ventas Q4",
+    extension: "csv",
+    isPinned: false,
+    lastSeen: new Date("2025-10-31T09:00:00Z"),
+    uploadedAt: new Date("2025-10-30T18:15:00Z"),
+    observations: [],
+  },
 ];
 
 // Mapea cada fileDataId a su metadata y URL de previsualización/descarga
@@ -175,9 +185,16 @@ const mockFileData: Record<string, FileData> = {
   d10: {
     _id: "d10",
     blobName: "presentacion.pptx",
-    url: "https://docs.google.com/presentation/d/1GKuTawBs6gWl3iL8KKvJ9CSLd7jQ9a9t/edit?usp=sharing&ouid=114165473292182242019&rtpof=true&sd=true",
+    url: "https://www.unileon.es/ficheros/informacion_general/id_visual_corporativa/nueva_marca/ejemplos-ppt.ppt",
     size: 500_000,
     mimeType: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+  },
+  d11: {
+    _id: "d11",
+    blobName: "ventas_q4.csv",
+    url: "",
+    size: 480,
+    mimeType: "text/csv; charset=utf-8",
   },
 };
 
@@ -198,6 +215,12 @@ export function sum(a: number, b: number) {
 }
 
 export const greet = (name: string) => \`Hola \${name}!\`;`,
+  d11: `fecha,cliente,producto,cantidad,precio_total
+2025-10-01,Ana SA,Suscripcion Pro,3,149.97
+2025-10-05,Luis SL,Consultoria,1,500.00
+2025-10-12,Marta Tech,Licencia Enterprise,10,2990.00
+2025-10-20,Acme Corp,Soporte Anual,2,800.00
+2025-10-28,Globex,Add-on Storage,5,125.00`,
 };
 
 export async function getMyFiles(): Promise<ServiceResponse<UploadedFile[]>> {

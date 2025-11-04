@@ -171,10 +171,8 @@ function MyDriveWindow() {
                   mime.includes("vnd.ms-powerpoint") ||
                   mime.includes("vnd.ms-excel");
                 if ((isOfficeExt || isOfficeMime) && fileData.url) {
-                  const useEmbed = ["doc", "docx", "ppt", "pptx"].includes(ext); // Excel queda con 'view'
-                  const officePath = useEmbed ? "embed" : "view";
                   const officeUrl =
-                    `https://view.officeapps.live.com/op/${officePath}.aspx?src=${encodeURIComponent(fileData.url)}&ui=en-US&wdOrigin=BROWSELINK`;
+                    `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(fileData.url)}&ui=en-US&wdOrigin=BROWSELINK`;
                   return (
                     <iframe
                       className="viewer-frame"
