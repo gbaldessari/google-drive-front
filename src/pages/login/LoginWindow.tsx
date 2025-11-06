@@ -1,12 +1,3 @@
-/**
- * Componente de ventana de inicio de sesión.
- *
- * @remarks
- * Renderiza la ventana de login, valida los campos de email y contraseña,
- * muestra alertas de error o éxito y gestiona el flujo de autenticación y navegación.
- *
- * @component
- */
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./loginWindow.css";
@@ -15,7 +6,6 @@ import { z } from "zod";
 import { Alert } from "../../commons/Alert";
 import { LoginForm } from "./subcomponents/LoginForm";
 
-// Esquemas de validación para email y contraseña usando Zod
 const emailSchema = z.email("Por favor, ingrese un correo electrónico válido.");
 const passwordSchema = z
   .string()
@@ -31,7 +21,6 @@ const passwordSchema = z
  * Gestiona el estado de los campos, validación, alertas y navegación.
  */
 function LoginWindow() {
-  // Estados para los campos y alertas
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -41,10 +30,6 @@ function LoginWindow() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  /**
-   * Maneja el envío del formulario de login.
-   * Valida los campos y realiza la autenticación.
-   */
   const handleSubmit = async () => {
     try {
       emailSchema.parse(email);
@@ -115,9 +100,12 @@ function LoginWindow() {
           loading={loading}
           handleSubmit={handleSubmit}
         />
+        <button className="register-button" onClick={() => navigate("/register")}>
+          ¿No tienes una cuenta? Regístrate
+        </button>
         {/* Botón para recuperar contraseña */}
         <button className="recover-password" onClick={handleRecoverPassword}>
-          Recuperar Contraseña
+          ¿Olvidaste tu contraseña?
         </button>
       </div>
     </div>

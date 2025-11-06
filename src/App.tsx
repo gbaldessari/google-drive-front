@@ -8,6 +8,7 @@ import RecoverPasswordWindow from "./pages/recover/RecoverPasswordWindow";
 import HomeWindow from "./pages/home/HomeWindow";
 import HomeWelcomeWindow from "./pages/home/views/homeWelcome/HomeWelcomeWindow";
 import MyDriveWindow from "./pages/home/views/myDrive/MyDriveWindow";
+import RegisterWindow from "./pages/register/RegisterWindow";
 
 /**
  * Componente funcional que representa la aplicación principal.
@@ -33,7 +34,7 @@ function App() {
     const checkAuth = async () => {
       if ((location.pathname === "/login" || location.pathname === "/" ||
         location.pathname === "/recover-password" ||
-        location.pathname === "/reset-password") && !localStorage.getItem("accessToken")) {
+        location.pathname === "/reset-password" || location.pathname === "/register") && !localStorage.getItem("accessToken")) {
         return;
       }
       const accessToken = localStorage.getItem("accessToken");
@@ -112,6 +113,7 @@ function App() {
       <Routes>
         <Route path="/" element={<LoginWindow />} />
         <Route path="/login" element={<LoginWindow />} />
+        <Route path="/register" element={<RegisterWindow />} />
         <Route path="/home/*" element={<HomeWindow />}>
           <Route path="" element={<HomeWelcomeWindow />} />
           <Route path="my-drive" element={<MyDriveWindow />} />
