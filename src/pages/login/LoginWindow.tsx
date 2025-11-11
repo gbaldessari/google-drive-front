@@ -26,7 +26,7 @@ const passwordSchema = z
 
 /**
  * LoginWindow
- * 
+ *
  * Componente principal para el inicio de sesión de usuarios.
  * Gestiona el estado de los campos, validación, alertas y navegación.
  */
@@ -81,7 +81,9 @@ function LoginWindow() {
     } else {
       console.error(response.error);
       setShowError(true);
-      setError("Error al iniciar sesión.");
+      setError(
+        response.error || "Error desconocido durante el inicio de sesión."
+      );
       setTimeout(() => setShowError(false), 2000);
       setLoading(false);
     }
@@ -94,17 +96,20 @@ function LoginWindow() {
     navigate("/recover-password");
   };
 
+  /**
+   * Navega a la pantalla de registro.
+   */
+  const handleRegister = () => {
+    navigate("/register");
+  };
+
   return (
     <div>
       {/* Alertas de error y éxito */}
       <Alert type="error" message={error} show={showError} />
       <Alert type="success" message={success} show={showSuccess} />
       {/* Logo de la aplicación */}
-      <img
-        src="assets/LOGO2.png"
-        alt="Logo"
-        className="logo"
-      />
+      <img src="assets/LOGO2.png" alt="Logo" className="logo" />
       <div className="login-window">
         {/* Formulario de login */}
         <LoginForm
@@ -118,6 +123,10 @@ function LoginWindow() {
         {/* Botón para recuperar contraseña */}
         <button className="recover-password" onClick={handleRecoverPassword}>
           Recuperar Contraseña
+        </button>
+        {/* Enlace a registro */}
+        <button className="recover-password" onClick={handleRegister}>
+          Crea tu cuenta
         </button>
       </div>
     </div>
