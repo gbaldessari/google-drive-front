@@ -6,12 +6,10 @@
  * @property string lastName - Apellido del usuario.
  * @property string email - Correo electrónico del usuario.
  * @property string password - Contraseña del usuario.
+ * @property string confirmPassword - Confirmación de la contraseña del usuario.
  */
 export type RegisterPayload = {
   email: string;
   password: string;
   confirmPassword: string;
-  fullName: string;
-  username: string;
-  phone?: string;
-};
+}

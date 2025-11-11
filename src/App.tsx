@@ -12,6 +12,7 @@ import RegisterWindow from "./pages/register/RegisterWindow";
 import HomeWindow from "./pages/home/HomeWindow";
 import HomeWelcomeWindow from "./pages/home/views/homeWelcome/HomeWelcomeWindow";
 import MyDriveWindow from "./pages/home/views/myDrive/MyDriveWindow";
+import RegisterWindow from "./pages/register/RegisterWindow";
 
 /**
  * Componente funcional que representa la aplicación principal.
@@ -135,6 +136,7 @@ function App() {
         <Route path="/" element={<LoginWindow />} />
         <Route path="/register" element={<RegisterWindow />} />
         <Route path="/login" element={<LoginWindow />} />
+        <Route path="/register" element={<RegisterWindow />} />
         <Route path="/home/*" element={<HomeWindow />}>
           <Route path="" element={<HomeWelcomeWindow />} />
           <Route path="my-drive" element={<MyDriveWindow />} />

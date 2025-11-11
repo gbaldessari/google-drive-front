@@ -1,103 +1,144 @@
-/* Styles for the register window - wider and less tall than login */
+.register-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1.5rem 1rem 3rem;
+}
 
-/* Reuse class names from login but override sizing for register */
 .register-window {
   display: flex;
   flex-direction: column;
-  background-color: #00000010; /* slightly lighter overlay */
-  color: #fff;
-  font-family: 'Arial', sans-serif;
-  padding: 2rem;
-  border-radius: 10px;
-  box-shadow: 0 10px 24px rgba(54, 54, 54, 0.5);
+  gap: 1.25rem;
+  background: #ffffff;
+  width: 420px;
+  max-width: 95vw;
+  padding: 2rem 2.25rem;
+  border-radius: 14px;
+  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.12);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.register-window h2 {
+  margin: 0 0 0.5rem;
+  font-size: 1.9rem;
+  font-weight: 700;
+  background: linear-gradient(90deg, #0f172a, #2563eb, #0891b2);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
   text-align: center;
-  margin: auto;
-  width: 700px; /* more wide */
-  max-width: calc(100% - 2rem);
-  min-height: 560px; /* make the form taller */
 }
 
-/* Reduce logo vertical space to make the page shorter */
-.register-window .logo {
-  width: 320px;
-  height: auto;
-  margin-bottom: 0.5rem;
-  margin-top: 2rem;
-  display: block;
-  margin-left: auto;
-  margin-right: auto;
-  filter: drop-shadow(0 0 5px rgba(163, 188, 255, 0.5));
-}
-
-/* Form container: keep inputs stacked but allow two-column row */
 .register-form {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
-  padding: 1.5rem;
+  gap: 0.9rem;
 }
 
-/* Two-column row for username + phone */
-.register-form .row-two {
-  display: flex;
-  gap: 1rem;
-  align-items: center;
-}
-
-/* Make inputs take full available width; when inside .row-two they will share space */
-.register-form-input {
-  padding: 1rem 0.9rem;
-  font-size: 1.05rem;
-  text-align: left;
-  border: 2px solid #f8ab12;
-  border-radius: 6px;
-  background-color: #fff;
+.register-input {
+  padding: 0.85rem 0.9rem;
+  font-size: 1rem;
+  border-radius: 8px;
+  border: 1px solid rgba(0, 0, 0, 0.18);
   color: #000;
-  width: 100%;
-  box-sizing: border-box;
-  min-height: 44px;
+  background: #f8fafc;
+  transition: border-color 120ms ease, box-shadow 120ms ease;
 }
 
-/* Ensure inputs inside .row-two split equally */
-.register-form .row-two .register-form-input {
-  flex: 1 1 0;
-  width: auto; /* ensure flex controls width, not 100% */
+.register-input:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.25);
 }
 
-/* Adjust submit button sizing */
-.register-window .register-submit-button {
-  margin-top: 0.6rem;
-  padding: 1rem 1.25rem;
-  font-size: 1.1rem;
+.register-submit {
+  margin-top: 0.35rem;
+  padding: 0.9rem 1rem;
+  font-size: 1.05rem;
+  font-weight: 600;
   border: none;
-  border-radius: 6px;
-  background-color: #f8ab12;
+  border-radius: 8px;
+  background: #2563eb;
   color: #fff;
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: background-color 160ms ease, transform 120ms ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .5rem;
 }
 
-.register-window .recover-password {
-  margin-top: 0.6rem;
-  font-size: 0.95rem;
+.register-submit:hover {
+  background: #1d4ed8;
+}
+
+.register-submit:active {
+  transform: translateY(1px);
+}
+
+.register-submit:disabled {
+  opacity: .65;
+  cursor: not-allowed;
+}
+
+.register-alt {
+  background: transparent;
   border: none;
-  background-color: transparent;
-  color: #fff;
+  color: #2563eb;
   cursor: pointer;
+  font-size: 0.9rem;
   text-decoration: underline;
+  align-self: center;
 }
 
-/* Responsive: stack everything vertically on narrow screens */
-@media (max-width: 720px) {
-  .login-window {
-    width: 100%;
-    padding: 1rem;
+.register-spinner {
+  display: inline-flex;
+  gap: 0.4rem;
+}
+
+.register-spinner .dot {
+  width: 10px;
+  height: 10px;
+  background: #fff;
+  border-radius: 50%;
+  animation: regDot 1.1s infinite ease-in-out;
+}
+
+.register-spinner .dot:nth-child(2) {
+  animation-delay: .25s;
+}
+
+.register-spinner .dot:nth-child(3) {
+  animation-delay: .5s;
+}
+
+@keyframes regDot {
+
+  0%,
+  80%,
+  100% {
+    transform: scale(0);
   }
-  .row-two {
-    flex-direction: column;
+
+  40% {
+    transform: scale(1);
   }
-  .logo {
-    width: 90%;
-    margin-top: 1.5rem;
+}
+
+.register-error {
+  color: #dc2626;
+  font-size: 0.75rem;
+  margin-top: 0.3rem;
+  padding-left: 0.25rem;
+  line-height: 1.1;
+}
+
+@media (max-width: 560px) {
+  .register-window {
+    padding: 1.6rem 1.4rem;
+  }
+
+  .register-window h2 {
+    font-size: 1.65rem;
   }
 }
