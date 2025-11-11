@@ -1,9 +1,9 @@
 /**
  * Componente ResetPasswordWindow.
- * 
+ *
  * Renderiza la ventana para restablecer la contraseña del usuario.
  * Valida el código de recuperación y la nueva contraseña, muestra alertas y gestiona el flujo de restablecimiento.
- * 
+ *
  * @component
  */
 
@@ -18,7 +18,10 @@ import { ResetPasswordBlock } from "./subcomponents/ResetPasswordBlock";
 // Esquema de validación para el código de recuperación usando Zod
 const recoveryCodeSchema = z
   .string()
-  .regex(/^[A-Z0-9]{6}$/, "El código de recuperación debe tener exactamente 6 caracteres alfanuméricos en mayúsculas.");
+  .regex(
+    /^[A-Z0-9]{6}$/,
+    "El código de recuperación debe tener exactamente 6 caracteres alfanuméricos en mayúsculas."
+  );
 
 // Esquema de validación para la nueva contraseña usando Zod
 const passwordSchema = z
@@ -30,7 +33,7 @@ const passwordSchema = z
 
 /**
  * ResetPasswordWindow
- * 
+ *
  * Componente principal para el restablecimiento de contraseña.
  * Gestiona el estado de los campos, validación, alertas y navegación.
  */
@@ -56,7 +59,7 @@ function ResetPasswordWindow() {
       passwordSchema.parse(newPassword);
     } catch (e) {
       if (e instanceof z.ZodError) {
-        setError(e.errors?.[0]?.message || "Datos inválidos.");
+        setError(e.issues?.[0]?.message || "Datos inválidos.");
       } else {
         setError("Datos inválidos.");
       }
@@ -77,8 +80,9 @@ function ResetPasswordWindow() {
 
     const response = await resetPassword({
       email: localStorage.getItem("recoverEmail") || "",
-      recoveryCode,
+      code: recoveryCode,
       newPassword,
+      confirmNewPassword: confirmPassword,
     });
 
     if (response.success) {
@@ -112,11 +116,7 @@ function ResetPasswordWindow() {
       <Alert type="success" message={success} show={showSuccess} />
       <Alert type="error" message={error} show={showError} />
       {/* Logo de la aplicación */}
-      <img
-        src="assets/LOGO2.png"
-        alt="Logo"
-        className="logo"
-      />
+      <img src="assets/LOGO2.png" alt="Logo" className="logo" />
       {/* Formulario de restablecimiento */}
       <ResetPasswordBlock
         recoveryCode={recoveryCode}

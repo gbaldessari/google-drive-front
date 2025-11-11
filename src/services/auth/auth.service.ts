@@ -1,209 +1,255 @@
-//import axiosInstance from "../AxiosInstance";
+import { signInWithEmailAndPassword, signOut } from "firebase/auth";
+import type { UserCredential } from "firebase/auth";
+import { auth } from "../../firebase/config";
 import type { ServiceResponse } from "../ServiceResponce.type";
-import type { ChangePasswordPayload } from "./types/ChangePassword.type";
-import type { GetUsersResponse } from "./types/GetUsers.type";
 import type { LoginPayload, LoginResponse } from "./types/Login.type";
 import type { RecoverPasswordPayload } from "./types/RecoverPassword.type";
 import type { RegisterPayload } from "./types/Register.type";
-import type { ResetPasswordPayload } from "./types/ResetPassword.type";
-import type { UpdateNamePayload } from "./types/UpdateName.type";
-import type { ValidateAccessTokenResponse } from "./types/ValidateAccessToken.type";
-import type { ValidateRefreshTokenPayload, ValidateRefreshTokenResponse } from "./types/ValidateRefreshToken.type";
 
-/**
- * @description
- * Este archivo contiene funciones para interactuar con la API de autenticación.
- * Las funciones permiten registrar, iniciar sesión, validar tokens,
- * recuperar y restablecer contraseñas, y actualizar el nombre del usuario.
- */
+export const register = async (
+  payload: RegisterPayload
+): Promise<ServiceResponse<void>> => {
+  try {
+    const res = await fetch(`${import.meta.env.VITE_BACK_URL}/auth/register`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
 
-/**
- * Registra un nuevo usuario en el sistema.
- * 
- * @param {RegisterPayload} payload - La carga útil que contiene la información del nuevo usuario.
- */
-export const register = async ( payload: RegisterPayload): Promise<ServiceResponse<void>> => {
-  // try {
-  //   await axiosInstance.post('/auth/register', payload, {
-  //     headers: {
-  //       Authorization: `Bearer ${token}`,
-  //     },
-  //   });
-  //   return { success: true };
-  // } catch (error) {
-  //   return { success: false, error: String(error) };
-  // }
-  console.log('Register payload:', payload);
-  return { success: true };
+    const body = await res.json().catch(() => ({}));
+
+    if (!res.ok) {
+      const err =
+        (body &&
+          (body.error || body.message || (body as any).error?.message)) ||
+        "Error en el servidor";
+      return { success: false, error: err };
+    }
+
+    return { success: true };
+  } catch (e: any) {
+    return { success: false, error: e?.message ?? "Error de red" };
+  }
+};
+
+// Firebase maneja la validación de tokens en el backend.
+export const validateToken = async (
+  token: string
+): Promise<ServiceResponse<any>> => {
+  try {
+    const response = await fetch(
+      `${import.meta.env.VITE_BACK_URL}/auth/verify-token`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      // Si el backend devuelve 401 Unauthorized o 500
+      throw new Error(
+        `El backend falló la verificación (Status: ${response.status})`
+      );
+    }
+
+    const data = await response.json();
+    return { success: true, data: data.user }; // Devuelve los datos del usuario verificados
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
 };
 
 /**
- * Inicia sesión en el sistema.
- * 
- * @param {LoginPayload} payload - La carga útil que contiene la información de inicio de sesión.
+ * Inicia sesión en el sistema usando Firebase Authentication.
  */
-export const login = async (payload: LoginPayload): Promise<ServiceResponse<LoginResponse>> => {
-  // try {
-  //   const response = await axiosInstance.patch('/auth/login', payload);
-  //   return { success: true, data: response.data as LoginResponse };
-  // } catch (error) {
-  //   return { success: false, error: String(error) };
-  // }
-  console.log('Login payload:', payload);
-  return { success: true, data: { accessToken: 'dummyAccessToken', refreshToken: 'dummyRefreshToken', firstName: 'John', lastName: 'Doe' } };
+export const login = async (
+  payload: LoginPayload
+): Promise<ServiceResponse<LoginResponse>> => {
+  try {
+    const userCredential: UserCredential = await signInWithEmailAndPassword(
+      auth,
+      payload.email,
+      payload.password
+    );
+    const user = userCredential.user;
+    const accessToken = await user.getIdToken();
+    const refreshToken = user.refreshToken;
+    const verificationResponse = await validateToken(accessToken);
+
+    if (!verificationResponse.success) {
+      throw new Error(
+        verificationResponse.error || "Error en verificación del token."
+      );
+    }
+
+    // construcción de nombres separados (firstName/lastName)
+    const derivedDisplayName =
+      user.displayName ||
+      verificationResponse.data?.name ||
+      user.email!.split("@")[0];
+
+    const parts = derivedDisplayName.trim().split(/\s+/);
+    const firstName = parts[0] || undefined;
+    const lastName = parts.length > 1 ? parts.slice(1).join(" ") : undefined;
+
+    return {
+      success: true,
+      data: {
+        accessToken: accessToken,
+        refreshToken: refreshToken,
+        userDisplayName: derivedDisplayName,
+        userEmail: payload.email,
+        firstName,
+        lastName,
+      },
+    };
+  } catch (error: any) {
+    // Mapeo más completo de códigos de error de Firebase para dar mensajes amigables
+    let errorMessage = "Error desconocido al iniciar sesión.";
+    const code = error?.code as string | undefined;
+
+    switch (code) {
+      case "auth/invalid-credential":
+        // Ocurre cuando las credenciales están mal formadas (p. ej. OAuth mal generado)
+        errorMessage = "Credenciales inválidas.";
+        break;
+      case "auth/user-disabled":
+        errorMessage = "La cuenta está deshabilitada.";
+        break;
+      default:
+        // Si el backend devolvió un mensaje lo usamos, si existe
+        errorMessage = error?.message || "Error desconocido al iniciar sesión.";
+        break;
+    }
+
+    return { success: false, error: errorMessage, errorCode: code };
+  }
 };
 
 /**
- * Valida el token de acceso.
- * 
- * @param {string} token - El token de acceso a validar.
+ * Cierra la sesión del usuario en Firebase.
  */
-export const validateToken = async (token: string): Promise<ServiceResponse<ValidateAccessTokenResponse>> => {
-  // try {
-  //   const response = await axiosInstance.get('/auth/validate-token', {
-  //     headers: {
-  //       Authorization: `Bearer ${token}`,
-  //     },
-  //   });
-  //   return { 
-  //     success: true, data: response.data as ValidateAccessTokenResponse };
-  // } catch (error) {
-  //   return { success: false, error: String(error) };
-  // }
-  console.log('Validating token:', token);
-  return { success: true, data: { expiresAt: new Date(Date.now() + 3600 * 1000) } };
+export const logout = async (): Promise<ServiceResponse<void>> => {
+  try {
+    await signOut(auth);
+
+    // Limpiar el almacenamiento local después del logout de Firebase
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("refreshToken"); // Si lo usas
+    localStorage.removeItem("firstName");
+    localStorage.removeItem("lastName");
+    localStorage.removeItem("email");
+
+    return { success: true };
+  } catch (error: any) {
+    return {
+      success: false,
+      error: error.message || "Error al cerrar sesión.",
+    };
+  }
 };
 
 /**
- * Valida el token de actualización.
- * 
- * @param {ValidateRefreshTokenPayload} payload - La carga útil que contiene el token de actualización a validar.
+ * Recupera la contraseña del usuario enviando un enlace al correo electrónico.
+ * * @param {RecoverPasswordPayload} payload - Contiene el email del usuario.
  */
-export const validateRefreshToken = async (payload: ValidateRefreshTokenPayload): Promise<ServiceResponse<ValidateRefreshTokenResponse>> => {
-  // try {
-  //   const response = await axiosInstance.patch('/auth/refresh-token', payload);
-  //   return { success: true, data: response.data as ValidateRefreshTokenResponse };
-  // } catch (error) {
-  //   return { success: false, error: String(error) };
-  // }
-  console.log('Validating refresh token:', payload.refreshToken);
-  return { success: true, data: { accessToken: 'newDummyAccessToken', refreshToken: 'newDummyRefreshToken' } };
-}
+export const recoverPassword = async (
+  payload: RecoverPasswordPayload
+): Promise<ServiceResponse<void>> => {
+  try {
+    const res = await fetch(
+      `${import.meta.env.VITE_BACK_URL}/auth/password/request`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      }
+    );
 
-/**
- * Recupera la contraseña del usuario.
- * 
- * @param {RecoverPasswordPayload} payload - La carga útil que contiene la información para recuperar la contraseña.
- */
-export const recoverPassword = async (payload: RecoverPasswordPayload): Promise<ServiceResponse<void>> => {
-  // try {
-  //   await axiosInstance.patch('/auth/request-password-reset', payload);
-  //   return { success: true };
-  // } catch (error) {
-  //   return { success: false, error: String(error) };
-  // }
-  console.log('Recover password payload:', payload);
-  return { success: true };
+    const body = await res.json().catch(() => ({}));
+
+    if (!res.ok) {
+      const errorMessage =
+        body?.error || body?.message || "Error en el servidor";
+      return { success: false, error: errorMessage };
+    }
+
+    return { success: true };
+  } catch (error: any) {
+    return {
+      success: false,
+      error:
+        error?.message ??
+        "Error de red al solicitar recuperación de contraseña.",
+    };
+  }
 };
 
-/**
- * Restablece la contraseña del usuario.
- * 
- * @param {ResetPasswordPayload} payload - La carga útil que contiene la información para restablecer la contraseña.
- */
-export const resetPassword = async (payload: ResetPasswordPayload): Promise<ServiceResponse<void>> => {
-  // try {
-  //   await axiosInstance.patch('/auth/reset-password', payload);
-  //   return { success: true };
-  // } catch (error) {
-  //   return { success: false, error: String(error) };
-  // }
-  console.log('Reset password payload:', payload);
-  return { success: true };
+export const resetPassword = async (payload: {
+  email: string;
+  code: string;
+  newPassword: string;
+  confirmNewPassword: string;
+}): Promise<ServiceResponse<void>> => {
+  try {
+    const res = await fetch(
+      `${import.meta.env.VITE_BACK_URL}/auth/password/reset`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      }
+    );
+
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const err = body?.error ?? body?.message ?? "Error en el servidor";
+      return { success: false, error: err };
+    }
+    return { success: true };
+  } catch (e: any) {
+    return { success: false, error: e?.message ?? "Error de red" };
+  }
 };
 
-/**
- * Verifica el código de recuperación de contraseña.
- * 
- * @param {string} token - El token de autorización del usuario.
- */
-export const logout = async (token: string): Promise<ServiceResponse<void>> => {
-  // try {
-  //   await axiosInstance.patch('/auth/logout', {}, {
-  //     headers: {
-  //       Authorization: `Bearer ${token}`,
-  //     },
-  //   });
-  //   return { success: true };
-  // } catch (error) {
-  //   return { success: false, error: String(error) };
-  // }
-  console.log('Logging out with token:', token);
-  return { success: true };
+// --- Funciones no implementadas / no necesarias directamente por Firebase ---
+export const validateRefreshToken = async (
+  payload: any
+): Promise<ServiceResponse<any>> => {
+  // Firebase Auth maneja la expiración de sesión automáticamente (No usa refresh tokens explícitos)
+  return {
+    success: false,
+    error: "Firebase maneja la sesión automáticamente.",
+  };
 };
 
-/**
- * Actualiza el nombre del usuario.
- * 
- * @param {string} token - El token de autorización del usuario.
- * @param {UpdateNamePayload} payload - La carga útil que contiene la información para actualizar el nombre.
- */
-export const updateName = async (token: string, payload: UpdateNamePayload): Promise<ServiceResponse<void>> => {
-  // try {
-  //   await axiosInstance.patch('/auth/update-name', payload, {
-  //     headers: {
-  //       Authorization: `Bearer ${token}`,
-  //     },
-  //   });
-  //   return { success: true };
-  // } catch (error) {
-  //   return { success: false, error: String(error) };
-  // }
-  console.log('Updating name for token:', token);
-  console.log('Update name payload:', payload);
-  return { success: true };
+export const updateName = async (
+  token: string,
+  payload: any
+): Promise<ServiceResponse<void>> => {
+  // La actualización del nombre debe ser una llamada a la API de Nest.js para modificar MongoDB.
+  return {
+    success: false,
+    error: "Usar API de Backend para actualizar perfil de MongoDB.",
+  };
 };
 
-/**
- * Cambia la contraseña del usuario.
- * 
- * @param {string} token - El token de autorización del usuario.
- * @param {ChangePasswordPayload} payload - La carga útil que contiene la información para cambiar la contraseña.
- */
-export const changePassword = async (token: string, payload: ChangePasswordPayload): Promise<ServiceResponse<void>> => {
-  // try {
-  //   await axiosInstance.patch('/auth/change-password', payload, {
-  //     headers: {
-  //       Authorization: `Bearer ${token}`,
-  //     },
-  //   });
-  //   return { success: true };
-  // } catch (error) {
-  //   return { success: false, error: String(error) };
-  // }
-  console.log('Change password token:', token);
-  console.log('Change password payload:', payload);
-  return { success: true };
+export const changePassword = async (
+  token: string,
+  payload: any
+): Promise<ServiceResponse<void>> => {
+  // Usar el método updatePassword de Firebase en el frontend, NO en el service.
+  return {
+    success: false,
+    error: "Usar updatePassword de Firebase en el componente.",
+  };
 };
 
-/** * Obtiene la lista de usuarios.
- * 
- * @param {string} token - El token de autorización del usuario.
- */
-export const getUsers = async (token: string): Promise<ServiceResponse<GetUsersResponse[]>> => {
-  // try {
-  //   const response = await axiosInstance.get('/auth/get-users', {
-  //     headers: {
-  //       Authorization: `Bearer ${token}`,
-  //     },
-  //   });
-  //   return { success: true, data: response.data as GetUsersResponse[] };
-  // } catch (error) {
-  //   return { success: false, error: String(error) };
-  // }
-  console.log('Getting users with token:', token);
-  return { success: true, data: [
-    { _id: '1', firstName: 'Jane', lastName: 'Doe', email: 'jane.doe@example.com' },
-    { _id: '2', firstName: 'John', lastName: 'Smith', email: 'john.smith@example.com' },
-  ] };
+export const getUsers = async (
+  token: string
+): Promise<ServiceResponse<any[]>> => {
+  // Esto es una llamada al backend de Nest.js (futura Tarea D4) para obtener usuarios de MongoDB.
+  return { success: false, error: "Llamada a la API de Backend (Nest.js)." };
 };

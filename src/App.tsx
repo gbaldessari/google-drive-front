@@ -2,9 +2,13 @@ import { useEffect, useState } from "react";
 import { useNavigate, useLocation, Routes, Route } from "react-router-dom";
 import LoginWindow from "./pages/login/LoginWindow";
 import LoadingScreen from "./commons/LoadingScreen";
-import { validateRefreshToken, validateToken } from "./services/auth/auth.service";
+import {
+  validateRefreshToken,
+  validateToken,
+} from "./services/auth/auth.service";
 import ResetPasswordWindow from "./pages/reset/ResetPasswordWindow";
 import RecoverPasswordWindow from "./pages/recover/RecoverPasswordWindow";
+import RegisterWindow from "./pages/register/RegisterWindow";
 import HomeWindow from "./pages/home/HomeWindow";
 import HomeWelcomeWindow from "./pages/home/views/homeWelcome/HomeWelcomeWindow";
 import MyDriveWindow from "./pages/home/views/myDrive/MyDriveWindow";
@@ -12,7 +16,7 @@ import RegisterWindow from "./pages/register/RegisterWindow";
 
 /**
  * Componente funcional que representa la aplicación principal.
- * 
+ *
  * - Controla la autenticación y el refresco de tokens.
  * - Gestiona la pantalla de carga durante los cambios de ruta.
  * - Define las rutas principales de la aplicación.
@@ -32,9 +36,14 @@ function App() {
   // Verifica autenticación y redirige según corresponda
   useEffect(() => {
     const checkAuth = async () => {
-      if ((location.pathname === "/login" || location.pathname === "/" ||
-        location.pathname === "/recover-password" ||
-        location.pathname === "/reset-password" || location.pathname === "/register") && !localStorage.getItem("accessToken")) {
+      if (
+        (location.pathname === "/login" ||
+          location.pathname === "/" ||
+          location.pathname === "/recover-password" ||
+          location.pathname === "/reset-password" ||
+          location.pathname === "/register") &&
+        !localStorage.getItem("accessToken")
+      ) {
         return;
       }
       const accessToken = localStorage.getItem("accessToken");
@@ -52,14 +61,19 @@ function App() {
       if (refreshToken) {
         const refreshValidation = await validateRefreshToken({ refreshToken });
         if (refreshValidation.success) {
-          localStorage.setItem("accessToken", refreshValidation.data?.accessToken || "");
-          localStorage.setItem("refreshToken", refreshValidation.data?.refreshToken || "");
+          localStorage.setItem(
+            "accessToken",
+            refreshValidation.data?.accessToken || ""
+          );
+          localStorage.setItem(
+            "refreshToken",
+            refreshValidation.data?.refreshToken || ""
+          );
           if (!location.pathname.startsWith("/home")) {
             navigate("/home");
           }
           return;
-        }
-        else {
+        } else {
           localStorage.removeItem("accessToken");
           localStorage.removeItem("refreshToken");
         }
@@ -86,10 +100,18 @@ function App() {
             setTimeout(async () => {
               const refreshToken = localStorage.getItem("refreshToken");
               if (refreshToken) {
-                const refreshValidation = await validateRefreshToken({ refreshToken });
+                const refreshValidation = await validateRefreshToken({
+                  refreshToken,
+                });
                 if (refreshValidation.success) {
-                  localStorage.setItem("accessToken", refreshValidation.data?.accessToken || "");
-                  localStorage.setItem("refreshToken", refreshValidation.data?.refreshToken || "");
+                  localStorage.setItem(
+                    "accessToken",
+                    refreshValidation.data?.accessToken || ""
+                  );
+                  localStorage.setItem(
+                    "refreshToken",
+                    refreshValidation.data?.refreshToken || ""
+                  );
                 } else {
                   localStorage.removeItem("accessToken");
                   localStorage.removeItem("refreshToken");
@@ -112,6 +134,7 @@ function App() {
       {/* Definición de rutas principales */}
       <Routes>
         <Route path="/" element={<LoginWindow />} />
+        <Route path="/register" element={<RegisterWindow />} />
         <Route path="/login" element={<LoginWindow />} />
         <Route path="/register" element={<RegisterWindow />} />
         <Route path="/home/*" element={<HomeWindow />}>
