@@ -38,7 +38,7 @@ export function RegisterForm({
   return (
     <div className="register-form">
       <input
-        className="register-form-input"
+        className="register-input"
         type="text"
         value={fullName}
         placeholder="Nombre completo"
@@ -47,7 +47,7 @@ export function RegisterForm({
 
       <div className="row-two">
         <input
-          className="register-form-input"
+          className="register-input"
           type="text"
           value={username}
           placeholder="Nombre de usuario"
@@ -55,7 +55,7 @@ export function RegisterForm({
         />
 
         <input
-          className="register-form-input"
+          className="register-input"
           type="text"
           value={phone}
           placeholder="Teléfono (opcional)"
@@ -64,7 +64,7 @@ export function RegisterForm({
       </div>
 
       <input
-        className="register-form-input"
+        className="register-input"
         type="text"
         value={email}
         placeholder="Correo electrónico"
@@ -72,7 +72,7 @@ export function RegisterForm({
       />
 
       <input
-        className="register-form-input"
+        className="register-input"
         type="password"
         value={password}
         placeholder="Contraseña"
@@ -80,22 +80,22 @@ export function RegisterForm({
       />
 
       <input
-        className="register-form-input"
+        className="register-input"
         type="password"
         value={confirmPassword}
         placeholder="Confirmar contraseña"
         onChange={(e) => setConfirmPassword(e.target.value)}
       />
       <button
-        className={`register-submit-button ${loading ? "loading" : ""}`}
+        className={`register-submit ${loading ? "loading" : ""}`}
         onClick={handleSubmit}
         disabled={loading}
       >
         {loading ? (
-          <div className="login-spinner">
-            <div className="login-dot"></div>
-            <div className="login-dot"></div>
-            <div className="login-dot"></div>
+          <div className="register-spinner">
+            <span className="dot" />
+            <span className="dot" />
+            <span className="dot" />
           </div>
         ) : (
           "Registrarme"

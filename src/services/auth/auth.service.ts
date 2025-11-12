@@ -5,6 +5,7 @@ import type { ServiceResponse } from "../ServiceResponce.type";
 import type { LoginPayload, LoginResponse } from "./types/Login.type";
 import type { RecoverPasswordPayload } from "./types/RecoverPassword.type";
 import type { RegisterPayload } from "./types/Register.type";
+import { parseApiResponse } from "../api/parseApiResponse";
 
 export const register = async (
   payload: RegisterPayload
@@ -16,14 +17,13 @@ export const register = async (
       body: JSON.stringify(payload),
     });
 
-    const body = await res.json().catch(() => ({}));
-
-    if (!res.ok) {
-      const err =
-        (body &&
-          (body.error || body.message || (body as any).error?.message)) ||
-        "Error en el servidor";
-      return { success: false, error: err };
+    const parsed = await parseApiResponse(res);
+    if (!parsed.ok) {
+      return {
+        success: false,
+        error: parsed.message,
+        errorCode: parsed.errorCode || undefined,
+      };
     }
 
     return { success: true };
@@ -41,21 +41,22 @@ export const validateToken = async (
       `${import.meta.env.VITE_BACK_URL}/auth/verify-token`,
       {
         method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       }
     );
 
-    if (!response.ok) {
-      // Si el backend devuelve 401 Unauthorized o 500
-      throw new Error(
-        `El backend falló la verificación (Status: ${response.status})`
-      );
+    const parsed = await parseApiResponse(response);
+    if (!parsed.ok) {
+      return {
+        success: false,
+        error: parsed.message,
+        errorCode: parsed.errorCode || undefined,
+      };
     }
 
-    const data = await response.json();
-    return { success: true, data: data.user }; // Devuelve los datos del usuario verificados
+    // backend returns { user: {...} } or user inside body
+    const user = parsed.body?.user ?? parsed.body;
+    return { success: true, data: user };
   } catch (error: any) {
     return { success: false, error: error.message };
   }
@@ -74,6 +75,19 @@ export const login = async (
       payload.password
     );
     const user = userCredential.user;
+    // If the user's email is not verified, sign out and return an actionable error
+    if (!user.emailVerified) {
+      try {
+        await signOut(auth);
+      } catch (e) {
+        // ignore sign out errors
+      }
+      return {
+        success: false,
+        error: "El correo electrónico no ha sido verificado.",
+        errorCode: "email-not-verified",
+      };
+    }
     const accessToken = await user.getIdToken();
     const refreshToken = user.refreshToken;
     const verificationResponse = await validateToken(accessToken);
@@ -103,6 +117,7 @@ export const login = async (
         userEmail: payload.email,
         firstName,
         lastName,
+        emailVerified: user.emailVerified,
       },
     };
   } catch (error: any) {
@@ -125,6 +140,36 @@ export const login = async (
     }
 
     return { success: false, error: errorMessage, errorCode: code };
+  }
+};
+
+/**
+ * Pide al backend que genere y envíe un correo de verificación para el email dado.
+ */
+export const sendVerificationEmail = async (
+  email: string
+): Promise<ServiceResponse<void>> => {
+  try {
+    const res = await fetch(
+      `${import.meta.env.VITE_BACK_URL}/auth/verify-email`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      }
+    );
+
+    const parsed = await parseApiResponse(res);
+    if (!parsed.ok) {
+      return {
+        success: false,
+        error: parsed.message,
+        errorCode: parsed.errorCode || undefined,
+      };
+    }
+    return { success: true };
+  } catch (e: any) {
+    return { success: false, error: e?.message ?? "Error de red" };
   }
 };
 
@@ -168,14 +213,13 @@ export const recoverPassword = async (
       }
     );
 
-    const body = await res.json().catch(() => ({}));
-
-    if (!res.ok) {
-      const errorMessage =
-        body?.error || body?.message || "Error en el servidor";
-      return { success: false, error: errorMessage };
-    }
-
+    const parsed = await parseApiResponse(res);
+    if (!parsed.ok)
+      return {
+        success: false,
+        error: parsed.message,
+        errorCode: parsed.errorCode || undefined,
+      };
     return { success: true };
   } catch (error: any) {
     return {
@@ -184,6 +228,66 @@ export const recoverPassword = async (
         error?.message ??
         "Error de red al solicitar recuperación de contraseña.",
     };
+  }
+};
+
+/**
+ * Solicita al backend la configuración de 2FA (TOTP) y devuelve los datos necesarios
+ * para mostrar el QR o la URL otpauth. Se espera que el backend devuelva
+ * { otpauthUrl?: string, qrBase64?: string, secret?: string }
+ */
+export const request2faSetup = async (): Promise<
+  ServiceResponse<{ otpauthUrl?: string; qrBase64?: string; secret?: string }>
+> => {
+  try {
+    const res = await fetch(`${import.meta.env.VITE_BACK_URL}/auth/2fa/setup`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    });
+
+    const parsed = await parseApiResponse(res);
+    if (!parsed.ok)
+      return {
+        success: false,
+        error: parsed.message,
+        errorCode: parsed.errorCode || undefined,
+      };
+
+    return { success: true, data: parsed.body };
+  } catch (e: any) {
+    return { success: false, error: e?.message ?? "Error de red" };
+  }
+};
+
+/**
+ * Confirma la activación de 2FA enviando el código TOTP generado por el usuario.
+ * Se espera que el backend valide y active 2FA para la cuenta.
+ */
+export const confirm2fa = async (
+  code: string
+): Promise<ServiceResponse<void>> => {
+  try {
+    const res = await fetch(
+      `${import.meta.env.VITE_BACK_URL}/auth/2fa/confirm`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code }),
+      }
+    );
+
+    const parsed = await parseApiResponse(res);
+    if (!parsed.ok)
+      return {
+        success: false,
+        error: parsed.message,
+        errorCode: parsed.errorCode || undefined,
+      };
+
+    return { success: true };
+  } catch (e: any) {
+    return { success: false, error: e?.message ?? "Error de red" };
   }
 };
 
@@ -203,11 +307,13 @@ export const resetPassword = async (payload: {
       }
     );
 
-    const body = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      const err = body?.error ?? body?.message ?? "Error en el servidor";
-      return { success: false, error: err };
-    }
+    const parsed = await parseApiResponse(res);
+    if (!parsed.ok)
+      return {
+        success: false,
+        error: parsed.message,
+        errorCode: parsed.errorCode || undefined,
+      };
     return { success: true };
   } catch (e: any) {
     return { success: false, error: e?.message ?? "Error de red" };
@@ -216,7 +322,7 @@ export const resetPassword = async (payload: {
 
 // --- Funciones no implementadas / no necesarias directamente por Firebase ---
 export const validateRefreshToken = async (
-  payload: any
+  _payload: any
 ): Promise<ServiceResponse<any>> => {
   // Firebase Auth maneja la expiración de sesión automáticamente (No usa refresh tokens explícitos)
   return {
@@ -226,8 +332,8 @@ export const validateRefreshToken = async (
 };
 
 export const updateName = async (
-  token: string,
-  payload: any
+  _token: string,
+  _payload: any
 ): Promise<ServiceResponse<void>> => {
   // La actualización del nombre debe ser una llamada a la API de Nest.js para modificar MongoDB.
   return {
@@ -237,8 +343,8 @@ export const updateName = async (
 };
 
 export const changePassword = async (
-  token: string,
-  payload: any
+  _token: string,
+  _payload: any
 ): Promise<ServiceResponse<void>> => {
   // Usar el método updatePassword de Firebase en el frontend, NO en el service.
   return {
@@ -248,7 +354,7 @@ export const changePassword = async (
 };
 
 export const getUsers = async (
-  token: string
+  _token: string
 ): Promise<ServiceResponse<any[]>> => {
   // Esto es una llamada al backend de Nest.js (futura Tarea D4) para obtener usuarios de MongoDB.
   return { success: false, error: "Llamada a la API de Backend (Nest.js)." };

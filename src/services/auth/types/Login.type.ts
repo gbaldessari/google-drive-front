@@ -28,4 +28,5 @@ export type LoginResponse = {
   userEmail: string;
   firstName: string;
   lastName: string;
+  emailVerified?: boolean;
 };

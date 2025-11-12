@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
+import { useEffect } from "react";
 import "./loginWindow.css";
-import { login } from "../../services/auth/auth.service";
+import { useAuth } from "../../contexts/AuthContext";
 import { z } from "zod";
 import { Alert } from "../../commons/Alert";
 import { LoginForm } from "./subcomponents/LoginForm";
@@ -29,6 +30,24 @@ function LoginWindow() {
   const [showSuccess, setShowSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const auth = useAuth();
+  const location = useLocation();
+
+  // If we were navigated here with a message from verify-email page, show it
+  useEffect(() => {
+    const stateAny = location.state as any;
+    if (stateAny?.verifySentMessage) {
+      setSuccess(stateAny.verifySentMessage as string);
+      setShowSuccess(true);
+      // clear message so it doesn't re-show on re-render
+      try {
+        navigate(location.pathname, { replace: true, state: {} });
+      } catch (e) {
+        // ignore
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleSubmit = async () => {
     try {
@@ -47,45 +66,33 @@ function LoginWindow() {
 
     setLoading(true);
     setShowError(false);
-
-    const response = await login({ email, password });
+    const response = await auth.login(email, password);
 
     if (response.success) {
       setSuccess("Inicio de sesión exitoso.");
       setShowSuccess(true);
       setTimeout(() => {
         setShowSuccess(false);
-        localStorage.setItem("accessToken", response.data?.accessToken || "");
-        localStorage.setItem("refreshToken", response.data?.refreshToken || "");
-        localStorage.setItem("firstName", response.data?.firstName || "");
-        localStorage.setItem("lastName", response.data?.lastName || "");
-        localStorage.setItem("email", email);
         navigate("/home");
         setLoading(false);
-      }, 2000);
-    } else {
-      console.error(response.error);
-      setShowError(true);
-      setError(
-        response.error || "Error desconocido durante el inicio de sesión."
-      );
-      setTimeout(() => setShowError(false), 2000);
-      setLoading(false);
+      }, 1200);
+      return;
     }
-  };
 
-  /**
-   * Navega a la pantalla de recuperación de contraseña.
-   */
-  const handleRecoverPassword = () => {
-    navigate("/recover-password");
-  };
+    // If login failed due to unverified email, redirect to verify page
+    if (response.errorCode === "email-not-verified") {
+      navigate("/verify-email", { state: { email } });
+      setLoading(false);
+      return;
+    }
 
-  /**
-   * Navega a la pantalla de registro.
-   */
-  const handleRegister = () => {
-    navigate("/register");
+    console.error(response.error);
+    setShowError(true);
+    setError(
+      response.error || "Error desconocido durante el inicio de sesión."
+    );
+    setTimeout(() => setShowError(false), 2000);
+    setLoading(false);
   };
 
   return (
@@ -105,16 +112,18 @@ function LoginWindow() {
           loading={loading}
           handleSubmit={handleSubmit}
         />
-        <button className="register-button" onClick={() => navigate("/register")}>
+        <button
+          className="register-button"
+          onClick={() => navigate("/register")}
+        >
           ¿No tienes una cuenta? Regístrate
         </button>
         {/* Botón para recuperar contraseña */}
-        <button className="recover-password" onClick={handleRecoverPassword}>
+        <button
+          className="recover-password"
+          onClick={() => navigate("/recover-password")}
+        >
           ¿Olvidaste tu contraseña?
-        </button>
-        {/* Enlace a registro */}
-        <button className="recover-password" onClick={handleRegister}>
-          Crea tu cuenta
         </button>
       </div>
     </div>
